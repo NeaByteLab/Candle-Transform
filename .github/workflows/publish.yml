@@ -1,0 +1,28 @@
+name: Deno Publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.5.4
+
+      - name: Check package
+        run: deno check src/index.ts
+
+      - name: Run unit tests
+        run: deno test --no-check
+
+      - name: Publish package
+        run: deno publish --allow-dirty
