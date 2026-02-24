@@ -1,0 +1,58 @@
+{
+  "name": "@neabyte/candle-transform",
+  "version": "0.1.0",
+  "description": "High-precision OHLC transformation with strict anchor time alignment.",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "unbuild --minify",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "rm -rf dist && npm run build"
+  },
+  "keywords": [
+    "candle",
+    "ohlc",
+    "transform",
+    "timeframe",
+    "anchor",
+    "trading",
+    "batch"
+  ],
+  "devDependencies": {
+    "unbuild": "^3.6.1"
+  },
+  "author": {
+    "name": "NeaByteLab",
+    "email": "me@neabyte.com",
+    "url": "https://github.com/NeaByteLab"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NeaByteLab/Candle-Transform.git"
+  },
+  "bugs": {
+    "url": "https://github.com/NeaByteLab/Candle-Transform/issues"
+  },
+  "homepage": "https://github.com/NeaByteLab/Candle-Transform#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

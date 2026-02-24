@@ -1,4 +1,4 @@
-# Candle Transform [![JSR](https://jsr.io/badges/@neabyte/candle-transform)](https://jsr.io/@neabyte/candle-transform)
+# Candle Transform [![Module type: Deno/ESM](https://img.shields.io/badge/module%20type-deno%2Fesm-brightgreen)](https://github.com/NeaByteLab/Candle-Transform) [![npm version](https://img.shields.io/npm/v/@neabyte/candle-transform.svg)](https://www.npmjs.org/package/@neabyte/candle-transform) [![JSR](https://jsr.io/badges/@neabyte/candle-transform)](https://jsr.io/@neabyte/candle-transform) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 High-precision OHLC transformation with strict anchor time alignment.
 
@@ -10,8 +10,16 @@ High-precision OHLC transformation with strict anchor time alignment.
 
 ## Installation
 
+**Deno (JSR):**
+
 ```bash
 deno add jsr:@neabyte/candle-transform
+```
+
+**npm:**
+
+```bash
+npm install @neabyte/candle-transform
 ```
 
 ## Usage

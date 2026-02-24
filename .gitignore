@@ -10,3 +10,8 @@ deno.lock
 # OS
 .DS_Store
 Thumbs.db
+
+# Node
+dist/
+node_modules/
+package-lock.json
