@@ -19,9 +19,9 @@ export interface CandleData {
 
 /**
  * Allowed time units.
- * @description Units for timeframe parsing.
+ * @description Timeframe parse units; M is 30-day period.
  */
-export type TimeUnit = 'm' | 'h' | 'd'
+export type TimeUnit = 'm' | 'h' | 'd' | 'w' | 'M'
 
 /**
  * String format for timeframe.
