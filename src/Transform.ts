@@ -1,5 +1,6 @@
-import type { CandleData, TimeframeStr } from '@app/Types.ts'
+import type * as Types from '@app/Types.ts'
 import { Time } from '@app/Time.ts'
+import { Validator } from '@app/Validator.ts'
 
 /**
  * OHLC timeframe transform with anchor alignment.
@@ -11,7 +12,9 @@ export class Transform {
   /** Anchor minute (0-59) */
   private anchorMinute = 0
   /** Source candles data */
-  private sourceData: CandleData[]
+  private sourceData: Types.CandleData[]
+  /** Week start for 1W (0-6), default 1 (Monday) */
+  private weekStartDay: Types.CalendarWeekStart = 1
 
   /**
    * Sets anchor time (hour and optional minute).
@@ -20,7 +23,7 @@ export class Transform {
    * @param minute - Minute between 0-59, default 0
    * @returns Current instance
    */
-  anchor(hour: number, minute = 0): this {
+  setAnchorTime(hour: number, minute = 0): this {
     if (hour < 0 || hour > 23) {
       throw new Error('Anchor hour must be between 0 and 23')
     }
@@ -37,7 +40,7 @@ export class Transform {
    * @description Initializes with source candle data.
    * @param data - Input candle array
    */
-  constructor(data: CandleData[]) {
+  constructor(data: Types.CandleData[]) {
     this.sourceData = data
   }
 
@@ -45,26 +48,40 @@ export class Transform {
    * Runs batch transformation.
    * @description Aggregates candles to target timeframe and anchor.
    * @param candles - Source data array
-   * @param timeframe - Target timeframe string
+   * @param timeframe - Target timeframe (e.g. 4h, 1d, 1W, 1Mc)
    * @param anchorHour - Alignment anchor hour (0-23)
    * @param anchorMinute - Alignment anchor minute (0-59), default 0
+   * @param options - Optional: weekStartDay (for 1W), validate
    * @returns Transformed candle array
    */
   static execute(
-    candles: CandleData[],
-    timeframe: TimeframeStr,
+    candles: Types.CandleData[],
+    timeframe: Types.TimeframeStr,
     anchorHour = 23,
-    anchorMinute = 0
-  ): CandleData[] {
+    anchorMinute = 0,
+    options?: { weekStartDay?: Types.CalendarWeekStart; validate?: boolean }
+  ): Types.CandleData[] {
     if (candles.length === 0) {
       return []
     }
-    const intervalMs = Time.parseTimeframe(timeframe)
-    const results: CandleData[] = []
-    let currentCandle: CandleData | null = null
+    if (options?.validate) {
+      const result = Validator.validateCandles(candles, { allowUnordered: true })
+      if (!result.valid) {
+        throw new Error(`Validation failed: ${result.errors.join('; ')}`)
+      }
+    }
+    const weekStart = options?.weekStartDay ?? 1
+    const results: Types.CandleData[] = []
+    let currentCandle: Types.CandleData | null = null
     const sortedCandles = [...candles].sort((a, b) => a.time - b.time)
     for (const candle of sortedCandles) {
-      const bucketStart = Time.alignTime(candle.time, intervalMs, anchorHour, anchorMinute)
+      const bucketStart = Time.getBucketStart(
+        candle.time,
+        timeframe,
+        anchorHour,
+        anchorMinute,
+        weekStart
+      )
       if (!currentCandle) {
         currentCandle = {
           time: bucketStart,
@@ -107,17 +124,32 @@ export class Transform {
    * @param data - Input candle array
    * @returns New Transform instance
    */
-  static from(data: CandleData[]): Transform {
+  static fromCandles(data: Types.CandleData[]): Transform {
     return new Transform(data)
+  }
+
+  /**
+   * Sets week start day for 1W (calendar week).
+   * @description 0=Sun, 1=Mon, etc. Default 1.
+   * @param weekStartDay - Day of week (0-6)
+   * @returns Current instance
+   */
+  setWeekStartDay(weekStartDay: Types.CalendarWeekStart): this {
+    this.weekStartDay = weekStartDay
+    return this
   }
 
   /**
    * Runs transformation and returns candles.
    * @description Aggregates to target timeframe with current anchor.
-   * @param timeframe - Target timeframe string
+   * @param timeframe - Target timeframe string (e.g. 4h, 1W, 1Mc)
+   * @param options - Optional: validate
    * @returns Resulting candle array
    */
-  to(timeframe: TimeframeStr): CandleData[] {
-    return Transform.execute(this.sourceData, timeframe, this.anchorHour, this.anchorMinute)
+  toTimeframe(timeframe: Types.TimeframeStr, options?: { validate?: boolean }): Types.CandleData[] {
+    return Transform.execute(this.sourceData, timeframe, this.anchorHour, this.anchorMinute, {
+      weekStartDay: this.weekStartDay,
+      ...(options?.validate !== undefined ? { validate: options.validate } : {})
+    })
   }
 }
