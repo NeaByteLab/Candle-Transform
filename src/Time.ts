@@ -1,3 +1,6 @@
+import type * as Types from '@app/Types.ts'
+import { Calendar } from '@app/Calendar.ts'
+
 /**
  * Time constants and alignment helpers.
  * @description Millisecond units and timeframe parsing for buckets.
@@ -39,21 +42,53 @@ export class Time {
   }
 
   /**
+   * Bucket start for any timeframe (fixed or calendar).
+   * @description Uses calendar for 1W/1Mc, else fixed grid.
+   * @param timestamp - Input timestamp in ms
+   * @param timeframe - e.g. 4h, 1d, 1W (calendar week), 1Mc (calendar month)
+   * @param anchorHour - Anchor hour (0-23), used for fixed only
+   * @param anchorMinute - Anchor minute (0-59), used for fixed only
+   * @param weekStartDay - Week start (0-6) for 1W, default 1 (Monday)
+   * @returns Bucket start timestamp in ms
+   */
+  static getBucketStart(
+    timestamp: number,
+    timeframe: string,
+    anchorHour = 23,
+    anchorMinute = 0,
+    weekStartDay: Types.CalendarWeekStart = 1
+  ): number {
+    if (timeframe === '1W') {
+      return Calendar.getWeekStart(timestamp, weekStartDay)
+    }
+    if (timeframe === '1Mc') {
+      return Calendar.getMonthStart(timestamp)
+    }
+    const intervalMs = Time.parseTimeframe(timeframe)
+    return Time.alignTime(timestamp, intervalMs, anchorHour, anchorMinute)
+  }
+
+  /**
    * Parses timeframe string to ms.
    * @description Converts e.g. 15m, 4h, 1d to milliseconds.
-   * @param tf - Timeframe string input
+   * @param timeframeStr - Timeframe string input
    * @returns Duration in milliseconds
    */
-  static parseTimeframe(tf: string): number {
-    const match = tf.match(/^(\d+)([mhdwM])$/)
+  static parseTimeframe(timeframeStr: string): number {
+    if (timeframeStr === '1W' || timeframeStr === '1Mc') {
+      throw new Error(
+        `Use Time.getBucketStart for calendar timeframes 1W, 1Mc. parseTimeframe is for fixed intervals only.`
+      )
+    }
+    const match = timeframeStr.match(/^(\d+)([mhdwM])$/)
     if (!match || !match[1] || !match[2]) {
       throw new Error(
-        `Invalid timeframe format: ${tf}. Use format like '15m', '4h', '1d', '1w', '1M'`
+        `Invalid timeframe format: ${timeframeStr}. Use format like '15m', '4h', '1d', '1w', '1M', '1W', '1Mc'`
       )
     }
     const numValue = parseInt(match[1], 10)
-    const unit = match[2] as 'm' | 'h' | 'd' | 'w' | 'M'
-    switch (unit) {
+    const timeUnit = match[2] as 'm' | 'h' | 'd' | 'w' | 'M'
+    switch (timeUnit) {
       case 'm':
         return numValue * Time.msPerMinute
       case 'h':
@@ -65,7 +100,7 @@ export class Time {
       case 'M':
         return numValue * Time.msPerMonth
       default:
-        throw new Error(`Unknown time unit: ${unit}`)
+        throw new Error(`Unknown time unit: ${timeUnit}`)
     }
   }
 }
