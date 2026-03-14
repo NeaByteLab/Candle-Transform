@@ -1,6 +1,6 @@
 {
   "name": "@neabyte/candle-transform",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "High-precision OHLC transformation with strict anchor time alignment.",
   "type": "module",
   "main": "dist/index.cjs",
