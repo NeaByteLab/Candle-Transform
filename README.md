@@ -1,12 +1,18 @@
-# Candle Transform [![Module type: Deno/ESM](https://img.shields.io/badge/module%20type-deno%2Fesm-brightgreen)](https://github.com/NeaByteLab/Candle-Transform) [![npm version](https://img.shields.io/npm/v/@neabyte/candle-transform.svg)](https://www.npmjs.org/package/@neabyte/candle-transform) [![JSR](https://jsr.io/badges/@neabyte/candle-transform)](https://jsr.io/@neabyte/candle-transform) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<div align="center">
+
+# Candle Transform
 
 High-precision OHLC transformation with strict anchor time alignment.
 
+[![Module type: Deno/ESM](https://img.shields.io/badge/module%20type-deno%2Fesm-brightgreen)](https://github.com/NeaByteLab/Candle-Transform) [![npm version](https://img.shields.io/npm/v/@neabyte/candle-transform.svg)](https://www.npmjs.org/package/@neabyte/candle-transform) [![JSR](https://jsr.io/badges/@neabyte/candle-transform)](https://jsr.io/@neabyte/candle-transform) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+</div>
+
 ## Features
 
-- **Strict Anchor Alignment**: Ensures candles align with specific sessions (e.g., 4h candle starting at 23:00).
-- **High Performance**: Batch processing optimized for thousands of candles.
-- **Flexible Timeframes**: Supports `m`, `h`, `d` inputs.
+- **Strict Anchor Alignment**: Ensures candles align with specific sessions (e.g., 4h at 23:00 or 23:30 UTC).
+- **High Performance**: Batch processing optimized for thousands of candles at once.
+- **Flexible Timeframes**: Supports `m`, `h`, `d`, `w`, `M` (e.g. `15m`, `4h`, `1d`, `1w`, `1M`).
 
 ## Installation
 
@@ -41,40 +47,83 @@ console.log(h4) // Output: [ { time: 1704063600000, open: 1, high: 2, low: 0.5, 
 
 // Convert to 1-day chart with custom anchor (e.g., 00:00 UTC)
 const daily = Transform.from(data).anchor(0).to('1d')
-console.log(daily) // Output: [ { time: 1704063600000, open: 1, high: 2, low: 0.5, close: 1.5, ... }, ... ]
+
+// Anchor with hour and minute (e.g., 23:30 UTC)
+const session = Transform.from(data).anchor(23, 30).to('4h')
 ```
 
 ## API Reference
 
-### `Transform.from(data)`
+### Transform.from
 
-Creates a transformation instance from source data.
+```typescript
+Transform.from(data)
+```
 
-**Parameters:**
+- `data` `<CandleData[]>`: Array of source OHLC candles
+- Returns: `Transform`
+- Description: Creates a transformation instance for fluent chaining.
 
-- `data: CandleData[]` - Array of source candles
+### Transform.prototype.anchor
 
-### `.anchor(hour)`
+```typescript
+transform.anchor(hour, minute)
+```
 
-Sets the anchor hour in UTC for time alignment.
+- `hour` `<number>`: Anchor hour in UTC (0–23). Defaults to `23`.
+- `minute` `<number>`: (Optional) Anchor minute (0–59). Defaults to `0`.
+- Returns: `this`
+- Description: Sets the anchor time for bucket alignment (e.g. 23:30 UTC).
 
-**Parameters:**
+### Transform.prototype.to
 
-- `hour: number` - Hour (0-23). Default is `23` (23:00 UTC Market Open)
+```typescript
+transform.to(timeframe)
+```
 
-### `.to(timeframe)`
+- `timeframe` `<string>`: Target timeframe (e.g. `'15m'`, `'4h'`, `'1d'`, `'1w'`, `'1M'`).
+- Returns: `CandleData[]`
+- Description: Runs the transformation and returns aggregated candles.
 
-Executes the transformation.
+### Transform.execute
 
-**Parameters:**
+```typescript
+Transform.execute(candles, timeframe, anchorHour, anchorMinute)
+```
 
-- `timeframe: TimeframeStr` - Target timeframe (e.g., `'15m'`, `'4h'`, `'1d'`)
+- `candles` `<CandleData[]>`: Source candle array
+- `timeframe` `<string>`: Target timeframe (e.g. `'4h'`, `'1d'`)
+- `anchorHour` `<number>`: (Optional) Anchor hour (0–23). Defaults to `23`.
+- `anchorMinute` `<number>`: (Optional) Anchor minute (0–59). Defaults to `0`.
+- Returns: `CandleData[]`
+- Description: Runs batch transformation without a fluent instance.
 
-**Returns:** `CandleData[]` - Transformed candles
+### Time.alignTime
 
-## Limitations
+```typescript
+Time.alignTime(timestamp, intervalMs, anchorHour, anchorMinute)
+```
 
-Currently supports timeframes up to `1d` (Daily). Weekly (`1w`) and Monthly (`1M`) are not yet supported.
+- `timestamp` `<number>`: Input time in milliseconds
+- `intervalMs` `<number>`: Bucket interval in milliseconds
+- `anchorHour` `<number>`: (Optional) Anchor hour (0–23). Defaults to `23`.
+- `anchorMinute` `<number>`: (Optional) Anchor minute (0–59). Defaults to `0`.
+- Returns: `number`
+- Description: Aligns timestamp to the bucket open time on the anchor grid.
+
+### Time.parseTimeframe
+
+```typescript
+Time.parseTimeframe(tf)
+```
+
+- `tf` `<string>`: Timeframe string (e.g. `'15m'`, `'4h'`, `'1d'`, `'1w'`, `'1M'`)
+- Returns: `number`
+- Description: Parses timeframe string to duration in milliseconds.
+
+## Note
+
+- `1w` = 7 days; `1M` = 30-day period (fixed length, not calendar month).
 
 ## License
 
