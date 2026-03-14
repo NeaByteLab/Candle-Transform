@@ -1,28 +1,70 @@
 import type { CandleData, TimeframeStr } from '@app/Types.ts'
-import { getCandleOpenTime, parseTimeframe } from '@app/Time.ts'
+import { Time } from '@app/Time.ts'
 
 /**
- * Static class for batching.
- * @description Processes multiple candles efficiently.
+ * OHLC timeframe transform with anchor alignment.
+ * @description Fluent and static API for aggregating candles.
  */
-export class BatchTransform {
+export class Transform {
+  /** Anchor hour (0-23) */
+  private anchorHour = 23
+  /** Anchor minute (0-59) */
+  private anchorMinute = 0
+  /** Source candles data */
+  private sourceData: CandleData[]
+
   /**
-   * Executes batch transformation.
+   * Sets anchor time (hour and optional minute).
+   * @description Configures UTC anchor for bucket alignment.
+   * @param hour - Hour between 0-23
+   * @param minute - Minute between 0-59, default 0
+   * @returns Current instance
+   */
+  anchor(hour: number, minute = 0): this {
+    if (hour < 0 || hour > 23) {
+      throw new Error('Anchor hour must be between 0 and 23')
+    }
+    if (minute < 0 || minute > 59) {
+      throw new Error('Anchor minute must be between 0 and 59')
+    }
+    this.anchorHour = hour
+    this.anchorMinute = minute
+    return this
+  }
+
+  /**
+   * Creates transform instance.
+   * @description Initializes with source candle data.
+   * @param data - Input candle array
+   */
+  constructor(data: CandleData[]) {
+    this.sourceData = data
+  }
+
+  /**
+   * Runs batch transformation.
+   * @description Aggregates candles to target timeframe and anchor.
    * @param candles - Source data array
    * @param timeframe - Target timeframe string
-   * @param anchorHour - Alignment anchor hour
+   * @param anchorHour - Alignment anchor hour (0-23)
+   * @param anchorMinute - Alignment anchor minute (0-59), default 0
    * @returns Transformed candle array
    */
-  static execute(candles: CandleData[], timeframe: TimeframeStr, anchorHour = 23): CandleData[] {
+  static execute(
+    candles: CandleData[],
+    timeframe: TimeframeStr,
+    anchorHour = 23,
+    anchorMinute = 0
+  ): CandleData[] {
     if (candles.length === 0) {
       return []
     }
-    const intervalMs = parseTimeframe(timeframe)
+    const intervalMs = Time.parseTimeframe(timeframe)
     const results: CandleData[] = []
     let currentCandle: CandleData | null = null
     const sortedCandles = [...candles].sort((a, b) => a.time - b.time)
     for (const candle of sortedCandles) {
-      const bucketStart = getCandleOpenTime(candle.time, intervalMs, anchorHour)
+      const bucketStart = Time.alignTime(candle.time, intervalMs, anchorHour, anchorMinute)
       if (!currentCandle) {
         currentCandle = {
           time: bucketStart,
@@ -58,42 +100,11 @@ export class BatchTransform {
     }
     return results
   }
-}
-
-/**
- * Fluent interface for transform.
- * @description Builder pattern for easy use.
- */
-export class Transform {
-  /** Source candles data */
-  private sourceData: CandleData[]
-  /** Anchor hour offset */
-  private anchorHour = 23
 
   /**
-   * Creates transform instance.
-   * @description Initializes with source data.
-   */
-  constructor(data: CandleData[]) {
-    this.sourceData = data
-  }
-
-  /**
-   * Sets the anchor hour.
-   * @param hour - Hour between 0-23
-   * @returns Current instance
-   */
-  anchor(hour: number): this {
-    if (hour < 0 || hour > 23) {
-      throw new Error('Anchor hour must be between 0 and 23')
-    }
-    this.anchorHour = hour
-    return this
-  }
-
-  /**
-   * Static factory method.
-   * @param data - Input candle data
+   * Creates transform instance from data.
+   * @description Entry point for fluent chain.
+   * @param data - Input candle array
    * @returns New Transform instance
    */
   static from(data: CandleData[]): Transform {
@@ -101,11 +112,12 @@ export class Transform {
   }
 
   /**
-   * Executes the transformation.
+   * Runs transformation and returns candles.
+   * @description Aggregates to target timeframe with current anchor.
    * @param timeframe - Target timeframe string
    * @returns Resulting candle array
    */
   to(timeframe: TimeframeStr): CandleData[] {
-    return BatchTransform.execute(this.sourceData, timeframe, this.anchorHour)
+    return Transform.execute(this.sourceData, timeframe, this.anchorHour, this.anchorMinute)
   }
 }
